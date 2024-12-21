@@ -2,9 +2,6 @@ import argparse
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torchvision.datasets import CIFAR10
-from torch.utils.data import DataLoader, Dataset
-from torchvision.transforms import Compose, Resize, ToTensor
 from lib.plot import visualize_samples
 import pickle
 from edm.dnnlib.util import open_url
@@ -66,11 +63,6 @@ def sample_dpm_logSNR(params, model, noise, class_labels, is_logUniform=False):
 
 def main():
     args = parse_args()
-    transform = Compose([Resize((32, 32)), ToTensor()])
-    data_train = CIFAR10(root='.', train=True, download=args.download_dataset, transform=transform)
-    data_test = CIFAR10(root='.', train=False, download=False, transform=transform)
-    train_dataloader = DataLoader(data_train, batch_size=64, shuffle=True)
-    test_dataloader = DataLoader(data_test, batch_size=64, shuffle=True)
     with open('params.json') as f:
         params = json.load(f)
     with open_url('cond-vp.pkl') as f:
