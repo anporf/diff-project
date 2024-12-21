@@ -10,7 +10,6 @@ from edm.dnnlib import util
 import json
 import lib.solvers.euler as euler
 import lib.solvers.ddim as ddim
-import lib.solvers.ddim_logSNR as ddim_logSNR
 import lib.solvers.dpm_logSNR as dpm_logSNR
 from lib.utils import get_logsnr_schedule
 
@@ -19,7 +18,7 @@ from lib.utils import get_logsnr_schedule
 def parse_args():
     parser = argparse.ArgumentParser(description="Parser for solver type")
     parser.add_argument('--solver-type', type=str, 
-        choices=['euler', 'euler-logUniform', 'ddim', 'ddim-logSNR', 'dpm-logSNR'], 
+        choices=['euler', 'euler-logUniform', 'ddim', 'dpm-logSNR'], 
         required=True, 
         help="Specify the type of solver to use (e.g., euler, ddim)"
     )
@@ -46,15 +45,6 @@ def sample_ddim(params, model, noise, class_labels):
 
     x_ddim, _ = ddim.sample_ddim(model, noise, alphas_cumprod, class_labels=class_labels, **params)
     visualize_samples('DDIM Method', x_ddim)
-
-
-def sample_ddim_logSNR(params, model, noise, class_labels):
-    schedule_fn = get_logsnr_schedule(schedule='sigmoid', logsnr_min=-20., logsnr_max=20.)
-
-    x_ddim_logsnr, _ = ddim_logSNR.sample_ddim_logsnr(
-        model, noise, schedule_fn, num_steps=300, class_labels=class_labels, **params
-    )
-    visualize_samples('DDIM Method with Log-SNR Schedule', x_ddim_logsnr)
 
 
 def sample_dpm_logSNR(params, model, noise, class_labels):
@@ -85,8 +75,6 @@ def main():
     elif args.solver_type == 'euler-logUniform':
         sample_euler(params, model, noise, class_labels, True)
     elif args.solver_type == 'ddim':
-        sample_euler(params, model, noise, class_labels)
-    elif args.solver_type == 'ddim-logSNR':
         sample_euler(params, model, noise, class_labels)
     else:
         sample_euler(params, model, noise, class_labels)
