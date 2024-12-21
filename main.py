@@ -5,8 +5,13 @@ import torch.nn.functional as F
 from lib.plot import visualize_samples
 import pickle
 from edm.dnnlib.util import open_url
+from edm.torch_utils import misc
+from edm.dnnlib import util
 import json
-import lib
+import lib.solvers.euler as euler
+import lib.solvers.ddim as ddim
+import lib.solvers.ddim_logSNR as ddim_logSNR
+import lib.solvers.dpm_logSNR as dpm_logSNR
 from lib.utils import get_logsnr_schedule
 
 
@@ -23,39 +28,39 @@ def parse_args():
 
 
 def sample_euler(params, model, noise, class_labels, is_logUniform=False):
-    num_steps = params['num_stemps']
+    num_steps = params['num_steps']
     if is_logUniform:
-        betas = lib.euler.get_beta_schedule_logUniform(num_steps)
+        betas = euler.get_beta_schedule_logUniform(num_steps)
     else:
-        betas = lib.euler.get_beta_schedule(num_steps)
+        betas = euler.get_beta_schedule(num_steps)
     alphas = 1.0 - betas
     alphas_cumprod = np.cumprod(alphas)
-    x_euler, _ = lib.euler.sample_euler_vp(model, noise, betas, alphas_cumprod, class_labels=class_labels, **params)
+    x_euler, _ = euler.sample_euler_vp(model, noise, betas, alphas_cumprod, class_labels=class_labels, **params)
     visualize_samples('Euler Method', x_euler)
 
 
-def sample_ddim(params, model, noise, class_labels, is_logUniform=False):
-    betas = lib.euler.get_beta_schedule(params['num_stemps']_steps)
+def sample_ddim(params, model, noise, class_labels):
+    betas = euler.get_beta_schedule(params['num_steps'])
     alphas = 1.0 - betas
     alphas_cumprod = np.cumprod(alphas)
 
-    x_ddim, _ = lib.ddim.sample_ddim(model, noise, alphas_cumprod, class_labels=class_labels, **params)
+    x_ddim, _ = ddim.sample_ddim(model, noise, alphas_cumprod, class_labels=class_labels, **params)
     visualize_samples('DDIM Method', x_ddim)
 
 
-def sample_ddim_logSNR(params, model, noise, class_labels, is_logUniform=False):
+def sample_ddim_logSNR(params, model, noise, class_labels):
     schedule_fn = get_logsnr_schedule(schedule='sigmoid', logsnr_min=-20., logsnr_max=20.)
 
-    x_ddim_logsnr, _ = lib.ddim_logSNR.sample_ddim_logsnr(
+    x_ddim_logsnr, _ = ddim_logSNR.sample_ddim_logsnr(
         model, noise, schedule_fn, num_steps=300, class_labels=class_labels, **params
     )
     visualize_samples('DDIM Method with Log-SNR Schedule', x_ddim_logsnr)
 
 
-def sample_dpm_logSNR(params, model, noise, class_labels, is_logUniform=False):
+def sample_dpm_logSNR(params, model, noise, class_labels):
     schedule_fn = get_logsnr_schedule(schedule='linear', logsnr_min=-20., logsnr_max=20.)
 
-    x_dpm_solver_logsnr, _ = lib.dpm_logSNR.sample_dpm_solver_logsnr(
+    x_dpm_solver_logsnr, _ = dpm_logSNR.sample_dpm_solver_logsnr(
         model, noise, schedule_fn, num_steps=200, class_labels=class_labels, **params
     )
     visualize_samples('DPM-Solver Method with Log-SNR Schedule', x_dpm_solver_logsnr)
@@ -75,13 +80,13 @@ def main():
 
     class_labels = torch.randint(0, 10, (batch_size,))  # Random classes from 0 to 9
     class_labels = F.one_hot(class_labels, num_classes=10).float().to(params['device'])
-    if args.solvqer_type == 'euler':
+    if args.solver_type == 'euler':
         sample_euler(params, model, noise, class_labels)
-    elif args.solvqer_type == 'euler-logUniform':
+    elif args.solver_type == 'euler-logUniform':
         sample_euler(params, model, noise, class_labels, True)
-    elif args.solvqer_type == 'ddim':
+    elif args.solver_type == 'ddim':
         sample_euler(params, model, noise, class_labels)
-    elif args.solvqer_type == 'ddim-logSNR':
+    elif args.solver_type == 'ddim-logSNR':
         sample_euler(params, model, noise, class_labels)
     else:
         sample_euler(params, model, noise, class_labels)
